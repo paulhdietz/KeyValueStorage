@@ -85,6 +85,8 @@ input.onGesture(Gesture.Shake, function () {
 
 ---
 
+<!-- for PXT/microbit -->
+
 ## License
 
 MIT © 2026
