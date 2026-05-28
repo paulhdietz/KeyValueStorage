@@ -1,7 +1,7 @@
 {
-    "name": "microbit-kvstore",
+    "name": "keyvaluestorage",
     "version": "0.1.0",
-    "description": "Nonvolatile key-value storage for micro:bit. Store and retrieve strings, numbers, and booleans that survive power-off using the micro:bit's built-in flash (Settings) API.",
+    "description": "Nonvolatile key-value storage for micro:bit. Store and retrieve strings, numbers, and booleans that survive power-off.",
     "license": "MIT",
     "dependencies": {
         "core": "*"
