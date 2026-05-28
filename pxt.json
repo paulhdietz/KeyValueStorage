@@ -3,17 +3,15 @@
     "version": "0.1.0",
     "description": "Nonvolatile key-value storage for micro:bit. Store and retrieve strings, numbers, and booleans that survive power-off using the micro:bit's built-in flash (Settings) API.",
     "license": "MIT",
-    "targetVersions": {
-        "target": ">=6.0.0"
+    "dependencies": {
+        "core": "*"
     },
     "files": [
         "main.ts",
-        "README.md",
-        "LICENSE"
+        "README.md"
     ],
     "testFiles": [
         "test.ts"
     ],
-    "public": true,
-    "supportedTargets": ["microbit"]
+    "public": true
 }
