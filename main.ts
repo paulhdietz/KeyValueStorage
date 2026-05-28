@@ -5,8 +5,8 @@
  * block API. Data survives power-off and resets.
  *
  * Key rules imposed by the underlying runtime:
- *   - Keys must be non-empty strings, max 15 characters.
- *   - String values max ~255 characters per key.
+ *   - Keys must be non-empty strings, max 15 characters (including prefix).
+ *   - String values max ~250 characters per key.
  *   - Number values are stored as 32-bit integers (decimals are truncated).
  *   - Total flash storage is shared with the MakeCode runtime (~8 KB available).
  */
@@ -16,30 +16,31 @@ namespace kvstore {
 
     // ─── Internal helpers ────────────────────────────────────────────────────
 
-    const TYPE_STR = "s";
-    const TYPE_NUM = "n";
-    const TYPE_BOOL = "b";
+    // Internal key prefixes to separate types in flash storage.
+    // Each user key is stored under "s_<key>", "n_<key>", or "b_<key>".
+    // A master index of all user keys is kept under "__kvidx".
 
-    /** Prefix a key so we can detect the stored type without extra entries. */
-    function sKey(key: string): string { return "s_" + key; }
-    function nKey(key: string): string { return "n_" + key; }
-    function bKey(key: string): string { return "b_" + key; }
-    /** Meta key that tracks every stored user key in a comma-delimited list. */
-    const INDEX_KEY = "__kv_idx";
+    const INDEX_KEY = "__kvidx";
+    const EMPTY = "";
 
-    /** Return the current index array (user-facing keys, not prefixed). */
+    function sKey(key: string): string { return "s" + key; }
+    function nKey(key: string): string { return "n" + key; }
+    function bKey(key: string): string { return "b" + key; }
+
     function getIndex(): string[] {
         const raw = settings.readString(INDEX_KEY);
-        if (!raw || raw.length === 0) return [];
+        if (raw === null || raw.length === 0) return [];
         return raw.split(",");
     }
 
-    /** Persist the index array. */
     function saveIndex(idx: string[]): void {
-        settings.writeString(INDEX_KEY, idx.join(","));
+        if (idx.length === 0) {
+            settings.remove(INDEX_KEY);
+        } else {
+            settings.writeString(INDEX_KEY, idx.join(","));
+        }
     }
 
-    /** Add a key to the index if it isn't already present. */
     function registerKey(key: string): void {
         const idx = getIndex();
         if (idx.indexOf(key) < 0) {
@@ -48,7 +49,6 @@ namespace kvstore {
         }
     }
 
-    /** Remove a key from the index. */
     function unregisterKey(key: string): void {
         const idx = getIndex();
         const pos = idx.indexOf(key);
@@ -62,9 +62,9 @@ namespace kvstore {
 
     /**
      * Store a text value under the given key.
-     * The value is written to nonvolatile flash and survives power-off.
-     * @param key   Storage key (max 15 characters)
-     * @param value Text to store (max ~250 characters)
+     * The value survives power-off and resets.
+     * @param key   Storage key (max 13 characters), eg: "myKey"
+     * @param value Text to store, eg: "hello"
      */
     //% blockId=kvstore_set_string
     //% block="KV set string key %key value %value"
@@ -80,8 +80,8 @@ namespace kvstore {
     /**
      * Store a number under the given key.
      * Decimal values are truncated to the nearest integer.
-     * @param key   Storage key (max 15 characters)
-     * @param value Number to store
+     * @param key   Storage key (max 13 characters), eg: "myNum"
+     * @param value Number to store, eg: 0
      */
     //% blockId=kvstore_set_number
     //% block="KV set number key %key value %value"
@@ -96,8 +96,8 @@ namespace kvstore {
 
     /**
      * Store a boolean (true/false) under the given key.
-     * @param key   Storage key (max 15 characters)
-     * @param value Boolean to store
+     * @param key   Storage key (max 13 characters), eg: "myFlag"
+     * @param value Boolean to store, eg: false
      */
     //% blockId=kvstore_set_boolean
     //% block="KV set boolean key %key value %value"
@@ -114,8 +114,8 @@ namespace kvstore {
 
     /**
      * Read a stored text value. Returns the default if the key doesn't exist.
-     * @param key          Storage key
-     * @param defaultValue Fallback if key is missing, eg: ""
+     * @param key          Storage key, eg: "myKey"
+     * @param defaultValue Value returned when key is missing, eg: ""
      */
     //% blockId=kvstore_get_string
     //% block="KV get string key %key default %defaultValue"
@@ -124,14 +124,15 @@ namespace kvstore {
     //% weight=90
     //% group="Read"
     export function getString(key: string, defaultValue: string): string {
-        if (!settings.exists(sKey(key))) return defaultValue;
-        return settings.readString(sKey(key));
+        const v = settings.readString(sKey(key));
+        if (v === null) return defaultValue;
+        return v;
     }
 
     /**
      * Read a stored number. Returns the default if the key doesn't exist.
-     * @param key          Storage key
-     * @param defaultValue Fallback if key is missing, eg: 0
+     * @param key          Storage key, eg: "myNum"
+     * @param defaultValue Value returned when key is missing, eg: 0
      */
     //% blockId=kvstore_get_number
     //% block="KV get number key %key default %defaultValue"
@@ -140,14 +141,14 @@ namespace kvstore {
     //% weight=85
     //% group="Read"
     export function getNumber(key: string, defaultValue: number): number {
-        if (!settings.exists(nKey(key))) return defaultValue;
+        if (getIndex().indexOf(key) < 0) return defaultValue;
         return settings.readNumber(nKey(key));
     }
 
     /**
      * Read a stored boolean. Returns the default if the key doesn't exist.
-     * @param key          Storage key
-     * @param defaultValue Fallback if key is missing, eg: false
+     * @param key          Storage key, eg: "myFlag"
+     * @param defaultValue Value returned when key is missing, eg: false
      */
     //% blockId=kvstore_get_boolean
     //% block="KV get boolean key %key default %defaultValue"
@@ -156,7 +157,7 @@ namespace kvstore {
     //% weight=80
     //% group="Read"
     export function getBoolean(key: string, defaultValue: boolean): boolean {
-        if (!settings.exists(bKey(key))) return defaultValue;
+        if (getIndex().indexOf(key) < 0) return defaultValue;
         return settings.readNumber(bKey(key)) !== 0;
     }
 
@@ -164,7 +165,7 @@ namespace kvstore {
 
     /**
      * Check whether a key exists in the store.
-     * @param key Storage key to check
+     * @param key Storage key to check, eg: "myKey"
      */
     //% blockId=kvstore_has
     //% block="KV has key %key"
@@ -172,13 +173,12 @@ namespace kvstore {
     //% weight=75
     //% group="Utility"
     export function has(key: string): boolean {
-        const idx = getIndex();
-        return idx.indexOf(key) >= 0;
+        return getIndex().indexOf(key) >= 0;
     }
 
     /**
      * Delete a single key from the store.
-     * @param key Storage key to remove
+     * @param key Storage key to remove, eg: "myKey"
      */
     //% blockId=kvstore_remove
     //% block="KV remove key %key"
@@ -202,10 +202,10 @@ namespace kvstore {
     //% group="Utility"
     export function clear(): void {
         const idx = getIndex();
-        for (const key of idx) {
-            settings.remove(sKey(key));
-            settings.remove(nKey(key));
-            settings.remove(bKey(key));
+        for (let i = 0; i < idx.length; i++) {
+            settings.remove(sKey(idx[i]));
+            settings.remove(nKey(idx[i]));
+            settings.remove(bKey(idx[i]));
         }
         settings.remove(INDEX_KEY);
     }
