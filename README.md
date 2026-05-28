@@ -11,6 +11,7 @@ and **survives power-off, resets, and battery changes**.
 The extension adds a **KV Store** category (red) with three groups:
 
 ### Write
+
 | Block | Description |
 |---|---|
 | `KV set string key [] value []` | Store a text value |
@@ -18,6 +19,7 @@ The extension adds a **KV Store** category (red) with three groups:
 | `KV set boolean key [] value []` | Store true / false |
 
 ### Read
+
 | Block | Description |
 |---|---|
 | `KV get string key [] default []` | Read a text value (returns default if missing) |
@@ -25,6 +27,7 @@ The extension adds a **KV Store** category (red) with three groups:
 | `KV get boolean key [] default []` | Read a boolean (returns default if missing) |
 
 ### Utility
+
 | Block | Description |
 |---|---|
 | `KV has key []` | `true` if the key exists |
@@ -35,10 +38,9 @@ The extension adds a **KV Store** category (red) with three groups:
 
 ---
 
-## Quick-start example (Blocks / JavaScript)
+## Quick-start example
 
 ```typescript
-// On button A press: increment and save a counter
 input.onButtonPressed(Button.A, function () {
     let count = kvstore.getNumber("count", 0)
     count += 1
@@ -46,15 +48,8 @@ input.onButtonPressed(Button.A, function () {
     basic.showNumber(count)
 })
 
-// On button B press: read and display the saved counter
 input.onButtonPressed(Button.B, function () {
     basic.showNumber(kvstore.getNumber("count", 0))
-})
-
-// On shake: reset the counter
-input.onGesture(Gesture.Shake, function () {
-    kvstore.remove("count")
-    basic.showString("RST")
 })
 ```
 
@@ -64,27 +59,12 @@ input.onGesture(Gesture.Shake, function () {
 
 | Constraint | Detail |
 |---|---|
-| Key length | Max **15 characters** (micro:bit runtime limit) |
+| Key length | Max **15 characters** |
 | String value length | Max **~250 characters** per key |
 | Number values | Stored as **32-bit integers**; decimals are truncated |
-| Total flash | ~8 KB shared with the MakeCode runtime — keep data small |
-| Key characters | Letters, digits, and underscores recommended |
-
-> **Tip:** This extension uses the micro:bit's built-in `settings` namespace
-> (Settings storage), which is separate from the user program flash. Your code
-> is safe — only the data area is affected.
+| Total flash | ~8 KB shared with the MakeCode runtime |
 
 ---
-
-## Adding to your MakeCode project
-
-1. Open your project on [makecode.microbit.org](https://makecode.microbit.org).
-2. Click the **gear ⚙ → Extensions** menu.
-3. Paste the GitHub URL of this repository and press Enter.
-4. The **KV Store** category will appear in the block palette.
-
----
-
 
 ## License
 
