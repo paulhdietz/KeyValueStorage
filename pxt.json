@@ -4,8 +4,7 @@
     "description": "Nonvolatile key-value storage for micro:bit. Store and retrieve strings, numbers, and booleans that survive power-off.",
     "license": "MIT",
     "dependencies": {
-        "core": "*",
-        "settings": "*"
+        "core": "*"
     },
     "files": [
         "main.ts",
